@@ -1,77 +1,106 @@
-const button =
-    document.getElementById(
-        "translateButton"
+let dictionary = {};
+
+loadDictionary();
+
+async function loadDictionary() {
+
+  const response =
+    await fetch(
+      "dictionary.json"
     );
 
-button.addEventListener(
-    "click",
-    translate
-);
+  const data =
+    await response.json();
 
-async function translate() {
+  buildDictionary(data);
+}
 
-    const input =
-        document.getElementById(
-            "input"
-        ).value;
+function buildDictionary(data) {
 
-    const status =
-        document.getElementById(
-            "status"
-        );
+  for (
+    const word
+    of data.words
+  ) {
 
-    const result =
-        document.getElementById(
-            "result"
-        );
+    const source =
+      word.entry?.form;
 
-    result.innerText = "";
+    const translation =
+      word.translations?.[0]
+      ?.forms?.[0];
 
-    status.innerText =
-        "翻訳中...";
+    if (
+      source &&
+      translation
+    ) {
 
-    try {
-
-        const response =
-            await fetch(
-                "https://YOUR-WORKER.workers.dev/translate",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        text: input
-                    })
-                }
-            );
-
-        if (!response.ok) {
-
-            throw new Error(
-                "HTTP " +
-                response.status
-            );
-        }
-
-        const data =
-            await response.json();
-
-        result.innerText =
-            data.translated;
-
-        status.innerText =
-            "翻訳完了";
-
-    } catch (error) {
-
-        status.innerText =
-            "エラー";
-
-        result.innerText =
-            error.message;
+      dictionary[
+        source.toLowerCase()
+      ] = translation;
     }
+  }
+}
+
+const button =
+  document.getElementById(
+    "translateButton"
+  );
+
+button.addEventListener(
+  "click",
+  translate);
+
+function translate() {
+
+  const input =
+    document.getElementById(
+      "input"
+    ).value;
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+  const tokens =
+    tokenize(input);
+
+  const translated = [];
+
+  for (const token of tokens) {
+
+    if (
+      dictionary[token]
+    ) {
+
+      translated.push(
+        dictionary[token]
+      );
+
+    } else {
+
+      translated.push(
+        "[" + token + "]"
+      );
+    }
+  }
+
+  result.innerText =
+    translated.join(" ");
+}
+
+function tokenize(text) {
+
+  return text
+
+    .toLowerCase()
+
+    .replace(
+      /[^\p{L}\p{N}\s']/gu,
+      ""
+    )
+
+    .split(/\s+/)
+
+    .filter(Boolean);
 }
