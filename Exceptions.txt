@@ -1,8 +1,5 @@
-este|mio=am
-este|mios=are
-este|tosso=are
-este|tossos=are
-este|ilo=is
-este|ilos=are
-este|eto=is
-este|etos=are
+am|i=este
+are|you=este
+is|he=este
+is|she=este
+are|they=este
