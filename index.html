@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 
 <head>
 
@@ -181,7 +181,7 @@ Translate
   class="status"
   id="status"
 >
-辞書読み込み中...
+Loading dictionary...
 </div>
 
 <div
@@ -208,7 +208,7 @@ const statusText =
   );
 
 /*
-  初期化
+  Initialization
 */
 
 initialize();
@@ -222,7 +222,7 @@ async function initialize() {
     await loadExceptions();
 
     statusText.innerText =
-      "辞書読み込み完了";
+      "Dictionary loaded successfully";
 
     button.disabled =
       false;
@@ -232,12 +232,12 @@ async function initialize() {
     console.error(error);
 
     statusText.innerText =
-      "読み込み失敗";
+      "Failed to load";
   }
 }
 
 /*
-  辞書読み込み
+  Load Dictionary
 */
 
 async function loadDictionary() {
@@ -250,7 +250,7 @@ async function loadDictionary() {
   if (!response.ok) {
 
     throw new Error(
-      "辞書ファイル取得失敗"
+      "Failed to retrieve dictionary file"
     );
   }
 
@@ -266,7 +266,7 @@ async function loadDictionary() {
 }
 
 /*
-  辞書構築
+  Build Dictionary
 */
 
 function buildDictionary(data) {
@@ -276,7 +276,7 @@ function buildDictionary(data) {
   if (!data.words) {
 
     console.error(
-      "words が存在しません"
+      "words does not exist"
     );
 
     return;
@@ -288,14 +288,14 @@ function buildDictionary(data) {
   ) {
 
     /*
-      エアーシャ語
+      Easya language
     */
 
     const easya =
       word.spelling;
 
     /*
-      英語訳
+      English translation
     */
 
     const english =
@@ -309,9 +309,9 @@ function buildDictionary(data) {
     ) {
 
       /*
-        英語
+        English
         ↓
-        エアーシャ語
+        Easya
       */
 
       dictionary[
@@ -328,7 +328,7 @@ function buildDictionary(data) {
 }
 
 /*
-  例外読み込み
+  Load Exceptions
 */
 
 async function loadExceptions() {
@@ -343,7 +343,7 @@ async function loadExceptions() {
     if (!response.ok) {
 
       console.warn(
-        "Exceptions.txt がありません"
+        "Exceptions.txt not found"
       );
 
       return;
@@ -362,14 +362,14 @@ async function loadExceptions() {
   } catch (error) {
 
     console.error(
-      "例外読み込み失敗:",
+      "Failed to load exceptions:",
       error
     );
   }
 }
 
 /*
-  例外解析
+  Parse Exceptions
 */
 
 function parseExceptions(text) {
@@ -385,7 +385,7 @@ function parseExceptions(text) {
       line.trim();
 
     /*
-      空行
+      Empty line
     */
 
     if (!trimmed) {
@@ -393,7 +393,7 @@ function parseExceptions(text) {
     }
 
     /*
-      コメント
+      Comment
     */
 
     if (
@@ -436,7 +436,7 @@ function parseExceptions(text) {
 }
 
 /*
-  ボタン
+  Button Event
 */
 
 button.addEventListener(
@@ -445,7 +445,7 @@ button.addEventListener(
 );
 
 /*
-  翻訳
+  Translate
 */
 
 function translate() {
@@ -461,7 +461,7 @@ function translate() {
     );
 
   /*
-    元トークン
+    Original tokens
   */
 
   const originalTokens =
@@ -473,7 +473,7 @@ function translate() {
   );
 
   /*
-    出力
+    Output
   */
 
   const translated = [];
@@ -485,21 +485,21 @@ function translate() {
   ) {
 
     /*
-      元単語
+      Original word
     */
 
     const original =
       originalTokens[i];
 
     /*
-      小文字化
+      Convert to lowercase
     */
 
     const token =
       original.toLowerCase();
 
     /*
-      前単語
+      Previous word
     */
 
     const previous =
@@ -508,7 +508,7 @@ function translate() {
       ]?.toLowerCase();
 
     /*
-      例外キー
+      Exception key
     */
 
     const exceptionKey =
@@ -517,7 +517,7 @@ function translate() {
       previous;
 
     /*
-      例外優先
+      Exception priority
     */
 
     if (
@@ -533,7 +533,7 @@ function translate() {
       );
 
       console.log(
-        "例外:",
+        "Exception:",
         exceptionKey,
         "→",
         exceptions[
@@ -545,7 +545,7 @@ function translate() {
     }
 
     /*
-      通常辞書
+      Standard dictionary
     */
 
     if (
@@ -557,7 +557,7 @@ function translate() {
       );
 
       console.log(
-        "辞書:",
+        "Dictionary:",
         token,
         "→",
         dictionary[token]
@@ -566,7 +566,7 @@ function translate() {
     } else {
 
       /*
-        未知語保持
+        Keep unknown word
       */
 
       translated.push(
@@ -574,14 +574,14 @@ function translate() {
       );
 
       console.log(
-        "未知語:",
+        "Unknown word:",
         original
       );
     }
   }
 
   /*
-    結果表示
+    Display result
   */
 
   result.innerText =
@@ -589,7 +589,7 @@ function translate() {
 }
 
 /*
-  トークン化
+  Tokenize
 */
 
 function tokenize(text) {
