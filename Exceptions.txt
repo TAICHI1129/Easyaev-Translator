@@ -1,6 +1,11 @@
+# be動詞: este（一人称・二人称）
 am|i=este
 are|you=este
+are|we=este
+are|you guys=este
+
+# be動詞: iste（三人称）
 is|he=iste
 is|she=iste
-are|they=iste
 is|it=iste
+are|they=iste
