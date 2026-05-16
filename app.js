@@ -15,14 +15,14 @@ async function loadDictionary() {
       await response.json();
 
     console.log(
-      "辞書データ:",
+      "辞書読み込み成功",
       data
     );
 
     buildDictionary(data);
 
     console.log(
-      "完成辞書:",
+      "完成辞書",
       dictionary
     );
 
@@ -35,6 +35,129 @@ async function loadDictionary() {
   }
 }
 
+function buildDictionary(data) {
+
+  if (!data.words) {
+
+    console.error(
+      "words が存在しません"
+    );
+
+    return;
+  }
+
+  for (
+    const word
+    of data.words
+  ) {
+
+    /*
+      エアーシャ語
+    */
+
+    const easya =
+      word.spelling;
+
+    /*
+      英語訳
+    */
+
+    const english =
+      word.sections?.[0]
+      ?.equivalents?.[0]
+      ?.terms?.[0];
+
+    if (
+      easya &&
+      english
+    ) {
+
+      /*
+        英語 → エアーシャ語
+      */
+
+      dictionary[
+        english.toLowerCase()
+      ] = easya;
+
+      console.log(
+        english,
+        "→",
+        easya
+      );
+    }
+  }
+}
+
+const button =
+  document.getElementById(
+    "translateButton"
+  );
+
+button.addEventListener(
+  "click",
+  translate
+);
+
+function translate() {
+
+  const input =
+    document.getElementById(
+      "input"
+    ).value;
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+  const tokens =
+    tokenize(input);
+
+  console.log(
+    "tokens:",
+    tokens
+  );
+
+  const translated = [];
+
+  for (const token of tokens) {
+
+    if (
+      dictionary[token]
+    ) {
+
+      translated.push(
+        dictionary[token]
+      );
+
+    } else {
+
+      translated.push(
+        "[" + token + "]"
+      );
+    }
+  }
+
+  result.innerText =
+    translated.join(" ");
+}
+
+function tokenize(text) {
+
+  return text
+
+    .toLowerCase()
+
+    .replace(
+      /[^\p{L}\p{N}\s']/gu,
+      ""
+    )
+
+    .split(/\s+/)
+
+    .filter(Boolean);
+}
 function buildDictionary(data) {
 
   if (!data.words) {
