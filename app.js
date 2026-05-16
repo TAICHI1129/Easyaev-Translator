@@ -6,7 +6,7 @@ async function loadDictionary() {
 
   const response =
     await fetch(
-      "dictionary.json"
+      "Easyaev.zpdc"
     );
 
   const data =
