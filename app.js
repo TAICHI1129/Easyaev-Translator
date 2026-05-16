@@ -23,11 +23,12 @@ function buildDictionary(data) {
   ) {
 
     const source =
-      word.entry?.form;
+      word.spelling;
 
     const translation =
-      word.translations?.[0]
-      ?.forms?.[0];
+      word.sections?.[0]
+      ?.equivalents?.[0]
+      ?.names?.[0];
 
     if (
       source &&
@@ -48,7 +49,8 @@ const button =
 
 button.addEventListener(
   "click",
-  translate);
+  translate
+);
 
 function translate() {
 
