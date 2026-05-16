@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta
@@ -139,6 +141,9 @@ button:disabled {
 
   line-height:
     1.6;
+
+  white-space:
+    pre-wrap;
 }
 
 .status {
@@ -151,7 +156,9 @@ button:disabled {
 }
 
 </style>
+
 </head>
+
 <body>
 
 <div class="container">
@@ -160,7 +167,7 @@ button:disabled {
 
 <textarea
   id="input"
-  placeholder="I speak Language"
+  placeholder="I am Taichi"
 ></textarea>
 
 <button
@@ -188,6 +195,8 @@ Translate
 
 let dictionary = {};
 
+let exceptions = {};
+
 const button =
   document.getElementById(
     "translateButton"
@@ -198,33 +207,19 @@ const statusText =
     "status"
   );
 
-loadDictionary();
+/*
+  初期化
+*/
 
-async function loadDictionary() {
+initialize();
+
+async function initialize() {
 
   try {
 
-    const response =
-      await fetch(
-        "Easyaev.zpdc"
-      );
+    await loadDictionary();
 
-    if (!response.ok) {
-
-      throw new Error(
-        "辞書ファイル取得失敗"
-      );
-    }
-
-    const data =
-      await response.json();
-
-    buildDictionary(data);
-
-    console.log(
-      "完成辞書:",
-      dictionary
-    );
+    await loadExceptions();
 
     statusText.innerText =
       "辞書読み込み完了";
@@ -237,9 +232,42 @@ async function loadDictionary() {
     console.error(error);
 
     statusText.innerText =
-      "辞書読み込み失敗";
+      "読み込み失敗";
   }
 }
+
+/*
+  辞書読み込み
+*/
+
+async function loadDictionary() {
+
+  const response =
+    await fetch(
+      "Easyaev.zpdc"
+    );
+
+  if (!response.ok) {
+
+    throw new Error(
+      "辞書ファイル取得失敗"
+    );
+  }
+
+  const data =
+    await response.json();
+
+  buildDictionary(data);
+
+  console.log(
+    "dictionary:",
+    dictionary
+  );
+}
+
+/*
+  辞書構築
+*/
 
 function buildDictionary(data) {
 
@@ -299,10 +327,126 @@ function buildDictionary(data) {
   }
 }
 
+/*
+  例外読み込み
+*/
+
+async function loadExceptions() {
+
+  try {
+
+    const response =
+      await fetch(
+        "Exceptions.txt"
+      );
+
+    if (!response.ok) {
+
+      console.warn(
+        "Exceptions.txt がありません"
+      );
+
+      return;
+    }
+
+    const text =
+      await response.text();
+
+    parseExceptions(text);
+
+    console.log(
+      "exceptions:",
+      exceptions
+    );
+
+  } catch (error) {
+
+    console.error(
+      "例外読み込み失敗:",
+      error
+    );
+  }
+}
+
+/*
+  例外解析
+*/
+
+function parseExceptions(text) {
+
+  exceptions = {};
+
+  const lines =
+    text.split("\n");
+
+  for (const line of lines) {
+
+    const trimmed =
+      line.trim();
+
+    /*
+      空行
+    */
+
+    if (!trimmed) {
+      continue;
+    }
+
+    /*
+      コメント
+    */
+
+    if (
+      trimmed.startsWith("#")
+    ) {
+      continue;
+    }
+
+    /*
+      am|i=este
+    */
+
+    const parts =
+      trimmed.split("=");
+
+    if (
+      parts.length !== 2
+    ) {
+      continue;
+    }
+
+    const key =
+      parts[0]
+      .trim()
+      .toLowerCase();
+
+    const value =
+      parts[1]
+      .trim();
+
+    exceptions[key] =
+      value;
+
+    console.log(
+      key,
+      "→",
+      value
+    );
+  }
+}
+
+/*
+  ボタン
+*/
+
 button.addEventListener(
   "click",
   translate
 );
+
+/*
+  翻訳
+*/
 
 function translate() {
 
@@ -316,17 +460,93 @@ function translate() {
       "result"
     );
 
-  const tokens =
+  /*
+    元トークン
+  */
+
+  const originalTokens =
     tokenize(input);
 
   console.log(
     "tokens:",
-    tokens
+    originalTokens
   );
+
+  /*
+    出力
+  */
 
   const translated = [];
 
-  for (const token of tokens) {
+  for (
+    let i = 0;
+    i < originalTokens.length;
+    i++
+  ) {
+
+    /*
+      元単語
+    */
+
+    const original =
+      originalTokens[i];
+
+    /*
+      小文字化
+    */
+
+    const token =
+      original.toLowerCase();
+
+    /*
+      前単語
+    */
+
+    const previous =
+      originalTokens[
+        i - 1
+      ]?.toLowerCase();
+
+    /*
+      例外キー
+    */
+
+    const exceptionKey =
+      token +
+      "|" +
+      previous;
+
+    /*
+      例外優先
+    */
+
+    if (
+      exceptions[
+        exceptionKey
+      ]
+    ) {
+
+      translated.push(
+        exceptions[
+          exceptionKey
+        ]
+      );
+
+      console.log(
+        "例外:",
+        exceptionKey,
+        "→",
+        exceptions[
+          exceptionKey
+        ]
+      );
+
+      continue;
+    }
+
+    /*
+      通常辞書
+    */
 
     if (
       dictionary[token]
@@ -336,27 +556,45 @@ function translate() {
         dictionary[token]
       );
 
+      console.log(
+        "辞書:",
+        token,
+        "→",
+        dictionary[token]
+      );
+
     } else {
 
       /*
-        未知語はそのまま
+        未知語保持
       */
 
       translated.push(
-        token
+        original
+      );
+
+      console.log(
+        "未知語:",
+        original
       );
     }
   }
+
+  /*
+    結果表示
+  */
 
   result.innerText =
     translated.join(" ");
 }
 
+/*
+  トークン化
+*/
+
 function tokenize(text) {
 
   return text
-
-    .toLowerCase()
 
     .replace(
       /[^\p{L}\p{N}\s']/gu,
