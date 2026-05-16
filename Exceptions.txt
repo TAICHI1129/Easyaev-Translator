@@ -1,5 +1,6 @@
 am|i=este
 are|you=este
-is|he=este
-is|she=este
-are|they=este
+is|he=iste
+is|she=iste
+are|they=iste
+is|it=iste
