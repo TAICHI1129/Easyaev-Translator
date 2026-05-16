@@ -4,18 +4,47 @@ loadDictionary();
 
 async function loadDictionary() {
 
-  const response =
-    await fetch(
-      "Easyaev.zpdc"
+  try {
+
+    const response =
+      await fetch(
+        "Easyaev.zpdc"
+      );
+
+    const data =
+      await response.json();
+
+    console.log(
+      "辞書データ:",
+      data
     );
 
-  const data =
-    await response.json();
+    buildDictionary(data);
 
-  buildDictionary(data);
+    console.log(
+      "完成辞書:",
+      dictionary
+    );
+
+  } catch (error) {
+
+    console.error(
+      "辞書読み込み失敗:",
+      error
+    );
+  }
 }
 
 function buildDictionary(data) {
+
+  if (!data.words) {
+
+    console.error(
+      "words が存在しません"
+    );
+
+    return;
+  }
 
   for (
     const word
@@ -25,10 +54,58 @@ function buildDictionary(data) {
     const source =
       word.spelling;
 
-    const translation =
-      word.sections?.[0]
-      ?.equivalents?.[0]
-      ?.names?.[0];
+    let translation =
+      null;
+
+    if (
+      word.sections &&
+      word.sections.length > 0
+    ) {
+
+      const section =
+        word.sections[0];
+
+      if (
+        section.equivalents &&
+        section.equivalents.length > 0
+      ) {
+
+        const equivalent =
+          section.equivalents[0];
+
+        /*
+          構造パターン対応
+        */
+
+        if (
+          equivalent.name
+        ) {
+
+          translation =
+            equivalent.name;
+
+        } else if (
+          equivalent.names &&
+          equivalent.names.length > 0
+        ) {
+
+          translation =
+            equivalent.names[0];
+
+        } else if (
+          equivalent.value
+        ) {
+
+          translation =
+            equivalent.value;
+        }
+
+        console.log(
+          "equivalent:",
+          equivalent
+        );
+      }
+    }
 
     if (
       source &&
@@ -38,6 +115,13 @@ function buildDictionary(data) {
       dictionary[
         source.toLowerCase()
       ] = translation;
+
+      console.log(
+        "追加:",
+        source,
+        "→",
+        translation
+      );
     }
   }
 }
@@ -66,6 +150,11 @@ function translate() {
 
   const tokens =
     tokenize(input);
+
+  console.log(
+    "tokens:",
+    tokens
+  );
 
   const translated = [];
 
