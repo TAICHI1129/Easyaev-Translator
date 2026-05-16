@@ -1,48 +1,82 @@
 let dictionary = {};
 
-loadDictionary();
+let exceptions = {};
 
-async function loadDictionary() {
+const button =
+  document.getElementById(
+    "translateButton"
+  );
+
+const statusText =
+  document.getElementById(
+    "status"
+  );
+
+initialize();
+
+async function initialize() {
+
+  button.disabled = true;
 
   try {
 
-    const response =
-      await fetch(
-        "Easyaev.zpdc"
-      );
+    await loadDictionary();
 
-    const data =
-      await response.json();
+    await loadExceptions();
 
-    console.log(
-      "辞書読み込み成功",
-      data
-    );
+    statusText.innerText =
+      "辞書読み込み完了";
 
-    buildDictionary(data);
-
-    console.log(
-      "完成辞書",
-      dictionary
-    );
+    button.disabled =
+      false;
 
   } catch (error) {
 
-    console.error(
-      "辞書読み込み失敗:",
-      error
-    );
+    console.error(error);
+
+    statusText.innerText =
+      "読み込み失敗";
   }
 }
 
-function buildDictionary(data) {
+/*
+  辞書読み込み
+*/
 
-  if (!data.words) {
+async function loadDictionary() {
 
-    console.error(
-      "words が存在しません"
+  const response =
+    await fetch(
+      "Easyaev.zpdc"
     );
 
+  if (!response.ok) {
+
+    throw new Error(
+      "辞書取得失敗"
+    );
+  }
+
+  const data =
+    await response.json();
+
+  buildDictionary(data);
+
+  console.log(
+    "dictionary:",
+    dictionary
+  );
+}
+
+/*
+  辞書構築
+*/
+
+function buildDictionary(data) {
+
+  dictionary = {};
+
+  if (!data.words) {
     return;
   }
 
@@ -59,7 +93,7 @@ function buildDictionary(data) {
       word.spelling;
 
     /*
-      英語訳
+      英語
     */
 
     const english =
@@ -73,7 +107,9 @@ function buildDictionary(data) {
     ) {
 
       /*
-        英語 → エアーシャ語
+        英語
+        ↓
+        エアーシャ語
       */
 
       dictionary[
@@ -89,175 +125,120 @@ function buildDictionary(data) {
   }
 }
 
-const button =
-  document.getElementById(
-    "translateButton"
-  );
+/*
+  例外読み込み
+*/
 
-button.addEventListener(
-  "click",
-  translate
-);
+async function loadExceptions() {
 
-function translate() {
+  try {
 
-  const input =
-    document.getElementById(
-      "input"
-    ).value;
+    const response =
+      await fetch(
+        "Exceptions.txt"
+      );
 
-  const result =
-    document.getElementById(
-      "result"
+    if (!response.ok) {
+
+      console.warn(
+        "Exceptions.txt が存在しません"
+      );
+
+      return;
+    }
+
+    const text =
+      await response.text();
+
+    parseExceptions(text);
+
+    console.log(
+      "exceptions:",
+      exceptions
     );
 
-  const tokens =
-    tokenize(input);
-
-  console.log(
-    "tokens:",
-    tokens
-  );
-
-  const translated = [];
-
-  for (const token of tokens) {
-
-    if (
-      dictionary[token]
-    ) {
-
-      translated.push(
-        dictionary[token]
-      );
-
-    } else {
-
-      translated.push(
-        "[" + token + "]"
-      );
-    }
-  }
-
-  result.innerText =
-    translated.join(" ");
-}
-
-function tokenize(text) {
-
-  return text
-
-    .toLowerCase()
-
-    .replace(
-      /[^\p{L}\p{N}\s']/gu,
-      ""
-    )
-
-    .split(/\s+/)
-
-    .filter(Boolean);
-}
-function buildDictionary(data) {
-
-  if (!data.words) {
+  } catch (error) {
 
     console.error(
-      "words が存在しません"
+      "例外読み込み失敗:",
+      error
     );
-
-    return;
-  }
-
-  for (
-    const word
-    of data.words
-  ) {
-
-    const source =
-      word.spelling;
-
-    let translation =
-      null;
-
-    if (
-      word.sections &&
-      word.sections.length > 0
-    ) {
-
-      const section =
-        word.sections[0];
-
-      if (
-        section.equivalents &&
-        section.equivalents.length > 0
-      ) {
-
-        const equivalent =
-          section.equivalents[0];
-
-        /*
-          構造パターン対応
-        */
-
-        if (
-          equivalent.name
-        ) {
-
-          translation =
-            equivalent.name;
-
-        } else if (
-          equivalent.names &&
-          equivalent.names.length > 0
-        ) {
-
-          translation =
-            equivalent.names[0];
-
-        } else if (
-          equivalent.value
-        ) {
-
-          translation =
-            equivalent.value;
-        }
-
-        console.log(
-          "equivalent:",
-          equivalent
-        );
-      }
-    }
-
-    if (
-      source &&
-      translation
-    ) {
-
-      dictionary[
-        source.toLowerCase()
-      ] = translation;
-
-      console.log(
-        "追加:",
-        source,
-        "→",
-        translation
-      );
-    }
   }
 }
 
-const button =
-  document.getElementById(
-    "translateButton"
-  );
+/*
+  例外解析
+*/
+
+function parseExceptions(text) {
+
+  exceptions = {};
+
+  const lines =
+    text.split("\n");
+
+  for (const line of lines) {
+
+    const trimmed =
+      line.trim();
+
+    /*
+      空行
+    */
+
+    if (!trimmed) {
+      continue;
+    }
+
+    /*
+      コメント
+    */
+
+    if (
+      trimmed.startsWith("#")
+    ) {
+      continue;
+    }
+
+    /*
+      este|mio=am
+    */
+
+    const parts =
+      trimmed.split("=");
+
+    if (
+      parts.length !== 2
+    ) {
+      continue;
+    }
+
+    const key =
+      parts[0]
+      .trim()
+      .toLowerCase();
+
+    const value =
+      parts[1]
+      .trim();
+
+    exceptions[key] =
+      value;
+  }
+}
+
+/*
+  ボタン
+*/
 
 button.addEventListener(
   "click",
   translate
 );
+
+/*
+  翻訳
+*/
 
 function translate() {
 
@@ -281,7 +262,50 @@ function translate() {
 
   const translated = [];
 
-  for (const token of tokens) {
+  for (
+    let i = 0;
+    i < tokens.length;
+    i++
+  ) {
+
+    const token =
+      tokens[i];
+
+    const previous =
+      tokens[i - 1];
+
+    /*
+      例外キー
+      este|mio
+    */
+
+    const exceptionKey =
+      token +
+      "|" +
+      previous;
+
+    /*
+      例外優先
+    */
+
+    if (
+      exceptions[
+        exceptionKey
+      ]
+    ) {
+
+      translated.push(
+        exceptions[
+          exceptionKey
+        ]
+      );
+
+      continue;
+    }
+
+    /*
+      通常辞書
+    */
 
     if (
       dictionary[token]
@@ -293,8 +317,12 @@ function translate() {
 
     } else {
 
+      /*
+        未知語
+      */
+
       translated.push(
-        "[" + token + "]"
+        token
       );
     }
   }
@@ -302,6 +330,10 @@ function translate() {
   result.innerText =
     translated.join(" ");
 }
+
+/*
+  トークン化
+*/
 
 function tokenize(text) {
 
