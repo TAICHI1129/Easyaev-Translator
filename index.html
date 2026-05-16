@@ -83,10 +83,22 @@ textarea {
     border-box;
 }
 
-button {
+.controls {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    12px;
 
   margin-top:
     15px;
+}
+
+button {
 
   padding:
     12px 24px;
@@ -117,6 +129,27 @@ button:disabled {
 
   cursor:
     not-allowed;
+}
+
+#directionButton {
+
+  background:
+    #2d2d2d;
+
+  border:
+    1px solid #555;
+
+  font-size:
+    15px;
+
+  padding:
+    12px 18px;
+}
+
+#directionButton:hover:not(:disabled) {
+
+  background:
+    #3a3a3a;
 }
 
 .result {
@@ -170,12 +203,23 @@ button:disabled {
   placeholder="I speak Easya Language"
 ></textarea>
 
-<button
-  id="translateButton"
-  disabled
->
-Translate
-</button>
+<div class="controls">
+
+  <button
+    id="translateButton"
+    disabled
+  >
+  Translate
+  </button>
+
+  <button
+    id="directionButton"
+    disabled
+  >
+  EN → Easya
+  </button>
+
+</div>
 
 <div
   class="status"
@@ -193,13 +237,42 @@ Loading dictionary...
 
 <script>
 
+/*
+  ============================================================
+  State
+  ============================================================
+*/
+
 let dictionary = {};
+
+/*
+  Reverse dictionary: Easya → English
+*/
+
+let reverseDictionary = {};
 
 let exceptions = {};
 
-const button =
+/*
+  "en2ea" or "ea2en"
+*/
+
+let direction = "en2ea";
+
+/*
+  ============================================================
+  DOM
+  ============================================================
+*/
+
+const translateButton =
   document.getElementById(
     "translateButton"
+  );
+
+const directionButton =
+  document.getElementById(
+    "directionButton"
   );
 
 const statusText =
@@ -207,8 +280,15 @@ const statusText =
     "status"
   );
 
+const inputEl =
+  document.getElementById(
+    "input"
+  );
+
 /*
+  ============================================================
   Initialization
+  ============================================================
 */
 
 initialize();
@@ -224,7 +304,10 @@ async function initialize() {
     statusText.innerText =
       "Dictionary loaded successfully";
 
-    button.disabled =
+    translateButton.disabled =
+      false;
+
+    directionButton.disabled =
       false;
 
   } catch (error) {
@@ -237,7 +320,9 @@ async function initialize() {
 }
 
 /*
+  ============================================================
   Load Dictionary
+  ============================================================
 */
 
 async function loadDictionary() {
@@ -263,15 +348,23 @@ async function loadDictionary() {
     "dictionary:",
     dictionary
   );
+
+  console.log(
+    "reverseDictionary:",
+    reverseDictionary
+  );
 }
 
 /*
+  ============================================================
   Build Dictionary
+  ============================================================
 */
 
 function buildDictionary(data) {
 
-  dictionary = {};
+  dictionary        = {};
+  reverseDictionary = {};
 
   if (!data.words) {
 
@@ -287,42 +380,59 @@ function buildDictionary(data) {
     of data.words
   ) {
 
-    /*
-      Easya language
-    */
-
     const easya =
       word.spelling;
 
-    /*
-      English translation
-    */
-
-    const english =
+    const equivalents =
       word.sections?.[0]
-      ?.equivalents?.[0]
-      ?.terms?.[0];
+      ?.equivalents ?? [];
 
-    if (
-      easya &&
-      english
+    for (
+      const equivalent
+      of equivalents
     ) {
 
-      /*
-        English
-        ↓
-        Easya
-      */
+      for (
+        const term
+        of (equivalent.terms ?? [])
+      ) {
 
-      dictionary[
-        english.toLowerCase()
-      ] = easya;
+        if (!term) continue;
 
-      console.log(
-        english,
-        "→",
-        easya
-      );
+        /*
+          EN → Easya
+        */
+
+        if (
+          !dictionary[
+            term.toLowerCase()
+          ]
+        ) {
+
+          dictionary[
+            term.toLowerCase()
+          ] = easya;
+
+          console.log(term, "→", easya);
+        }
+
+        /*
+          Easya → EN
+        */
+
+        if (
+          !reverseDictionary[
+            easya.toLowerCase()
+          ]
+        ) {
+
+          reverseDictionary[
+            easya.toLowerCase()
+          ] = term;
+
+          console.log(easya, "→", term);
+        }
+      }
     }
 
     /*
@@ -331,58 +441,65 @@ function buildDictionary(data) {
 
     const variations =
       word.sections?.[0]
-      ?.variations;
+      ?.variations ?? [];
 
-    if (
-      variations &&
-      variations.length > 0
+    for (
+      const variation
+      of variations
     ) {
 
-      const equivalents =
-        word.sections?.[0]
-        ?.equivalents ?? [];
+      const varSpelling =
+        variation.spelling;
+
+      const varTitle =
+        variation.title
+        ?.toLowerCase() ?? "";
 
       for (
-        const variation
-        of variations
+        const equivalent
+        of equivalents
       ) {
 
-        const variationSpelling =
-          variation.spelling;
-
-        const varTitle =
-          variation.title
-          ?.toLowerCase() ?? "";
-
         for (
-          const equivalent
-          of equivalents
+          const term
+          of (equivalent.terms ?? [])
         ) {
 
-          for (
-            const term
-            of (equivalent.terms ?? [])
-          ) {
+          const engVariant =
+            toEnglishVariation(
+              term,
+              varTitle
+            );
 
-            const englishVariant =
-              toEnglishVariation(
-                term,
-                varTitle
-              );
+          if (engVariant && varSpelling) {
 
             if (
-              englishVariant &&
-              variationSpelling
+              !dictionary[
+                engVariant.toLowerCase()
+              ]
             ) {
 
               dictionary[
-                englishVariant.toLowerCase()
-              ] = variationSpelling;
+                engVariant.toLowerCase()
+              ] = varSpelling;
 
               console.log(
-                englishVariant,
-                "→",
-                variationSpelling
+                engVariant, "→", varSpelling
+              );
+            }
+
+            if (
+              !reverseDictionary[
+                varSpelling.toLowerCase()
+              ]
+            ) {
+
+              reverseDictionary[
+                varSpelling.toLowerCase()
+              ] = engVariant;
+
+              console.log(
+                varSpelling, "→", engVariant
               );
             }
           }
@@ -393,8 +510,9 @@ function buildDictionary(data) {
 }
 
 /*
-  Convert base pronoun + variation title
-  to the corresponding English form
+  ============================================================
+  English possessive forms
+  ============================================================
 */
 
 function toEnglishVariation(
@@ -403,9 +521,7 @@ function toEnglishVariation(
 ) {
 
   if (
-    variationTitle.includes(
-      "possessive"
-    )
+    variationTitle.includes("possessive")
   ) {
 
     const map = {
@@ -419,16 +535,17 @@ function toEnglishVariation(
       "you guys": "your",
     };
 
-    return map[
-      baseTerm.toLowerCase()
-    ] ?? null;
+    return map[baseTerm.toLowerCase()]
+      ?? null;
   }
 
   return null;
 }
 
 /*
+  ============================================================
   Load Exceptions
+  ============================================================
 */
 
 async function loadExceptions() {
@@ -469,7 +586,11 @@ async function loadExceptions() {
 }
 
 /*
+  ============================================================
   Parse Exceptions
+  Format: verb|subject=easya
+  e.g.  : am|i=este
+  ============================================================
 */
 
 function parseExceptions(text) {
@@ -484,121 +605,158 @@ function parseExceptions(text) {
     const trimmed =
       line.trim();
 
-    /*
-      Empty line
-    */
-
-    if (!trimmed) {
-      continue;
-    }
-
-    /*
-      Comment
-    */
-
-    if (
-      trimmed.startsWith("#")
-    ) {
-      continue;
-    }
-
-    /*
-      am|i=este
-    */
+    if (!trimmed)                 continue;
+    if (trimmed.startsWith("#"))  continue;
 
     const parts =
       trimmed.split("=");
 
-    if (
-      parts.length !== 2
-    ) {
-      continue;
-    }
+    if (parts.length !== 2)       continue;
 
     const key =
-      parts[0]
-      .trim()
-      .toLowerCase();
+      parts[0].trim().toLowerCase();
 
     const value =
-      parts[1]
-      .trim();
+      parts[1].trim();
 
-    exceptions[key] =
-      value;
+    exceptions[key] = value;
 
-    console.log(
-      key,
-      "→",
-      value
-    );
+    console.log(key, "→", value);
   }
 }
 
 /*
-  Button Event
+  ============================================================
+  Direction button
+  ============================================================
 */
 
-button.addEventListener(
+directionButton.addEventListener(
+  "click",
+  () => {
+
+    direction =
+      direction === "en2ea"
+        ? "ea2en"
+        : "en2ea";
+
+    directionButton.textContent =
+      direction === "en2ea"
+        ? "EN → Easya"
+        : "Easya → EN";
+
+    inputEl.placeholder =
+      direction === "en2ea"
+        ? "I speak Easya Language"
+        : "Mio speke Easyaev";
+
+    document
+      .getElementById("result")
+      .innerText = "";
+  }
+);
+
+/*
+  ============================================================
+  Translate button
+  ============================================================
+*/
+
+translateButton.addEventListener(
   "click",
   translate
 );
 
 /*
-  Translate
+  ============================================================
+  Main translate
+  Splits input into sentences, processes each
+  ============================================================
 */
 
 function translate() {
 
   const input =
-    document.getElementById(
-      "input"
-    ).value;
+    inputEl.value.trim();
 
-  const result =
-    document.getElementById(
-      "result"
+  if (!input) return;
+
+  const sentences =
+    splitSentences(input);
+
+  const resultLines =
+    sentences.map(sentence =>
+
+      direction === "en2ea"
+        ? translateEnToEa(sentence)
+        : translateEaToEn(sentence)
     );
 
-  /*
-    Tokenize with punctuation info
-    e.g. "Hello, world!" →
-    [
-      { word: "Hello", punct: "," },
-      { word: "world", punct: "!" }
-    ]
-  */
+  document
+    .getElementById("result")
+    .innerText =
+      resultLines.join(" ");
+}
+
+/*
+  ============================================================
+  Split into sentences (keep terminal punctuation)
+  ============================================================
+*/
+
+function splitSentences(text) {
+
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+/*
+  ============================================================
+  EN → Easya
+
+  Steps:
+  1. Detect tense (will/shall → future, was/were/did → past)
+     and strip those aux tokens.
+  2. Strip "not"/"n't" → will insert as "non" before verb.
+  3. Word-for-word translation.
+  4. Insert "non" before first verb if negated.
+  5. Apply tense suffix to first verb.
+  6. If question (ends ?), reorder SVO → VSO.
+  ============================================================
+*/
+
+function translateEnToEa(sentence) {
+
+  const isQuestion =
+    /\?$/.test(sentence.trim());
 
   const tokens =
-    tokenize(input);
+    tokenize(sentence);
 
-  console.log(
-    "tokens:",
-    tokens
-  );
+  const ENAuxPast =
+    new Set(["was","were","did"]);
 
-  /*
-    Subject pronouns used for
-    Exception lookup (動詞|主語)
-  */
+  const ENAuxFuture =
+    new Set(["will","shall"]);
 
-  const subjectPronouns = new Set([
-    "i", "you", "he", "she",
-    "it", "we", "they", "you guys",
-  ]);
+  const beVerbs =
+    new Set(["am","is","are","was","were"]);
 
-  /*
-    Output
-  */
+  const subjectPronouns =
+    new Set([
+      "i","you","he","she","it",
+      "we","they","you guys",
+    ]);
 
-  const translated = [];
+  let tense      = "present";
+  let hasNot     = false;
+  const skipIdx  = new Set();
 
   /*
-    Track the last subject pronoun
-    seen so far in the sentence
+    --- Pass 1: detect tense & negation ---
   */
-
-  let lastSubject = undefined;
 
   for (
     let i = 0;
@@ -606,112 +764,477 @@ function translate() {
     i++
   ) {
 
+    const w =
+      tokens[i].word.toLowerCase();
+
+    if (ENAuxPast.has(w)) {
+
+      tense = "past";
+      skipIdx.add(i);
+
+    } else if (ENAuxFuture.has(w)) {
+
+      tense = "future";
+      skipIdx.add(i);
+    }
+
+    if (w === "not" || w === "n't") {
+
+      hasNot = true;
+      skipIdx.add(i);
+    }
+  }
+
+  /*
+    --- Pass 2: word-for-word translation ---
+  */
+
+  let lastSubject = undefined;
+  let verbIdx     = -1;
+
+  const tagged = [];
+
+  for (
+    let i = 0;
+    i < tokens.length;
+    i++
+  ) {
+
+    if (skipIdx.has(i)) continue;
+
     const { word: original, punct } =
       tokens[i];
 
-    /*
-      Convert to lowercase
-    */
-
     const token =
       original.toLowerCase();
-
-    /*
-      Update last subject
-      when we see a subject pronoun
-    */
 
     if (subjectPronouns.has(token)) {
       lastSubject = token;
     }
 
     /*
-      Exception key: 動詞|主語
-      e.g. "am|i", "is|he"
+      Exception lookup for be-verbs
     */
 
     const exceptionKey =
-      token +
-      "|" +
-      lastSubject;
+      token + "|" + lastSubject;
 
-    /*
-      Exception priority
-    */
+    let easya;
 
     if (
+      beVerbs.has(token) &&
       exceptions[exceptionKey]
     ) {
 
-      translated.push(
-        exceptions[exceptionKey] + punct
-      );
+      easya = exceptions[exceptionKey];
 
-      console.log(
-        "Exception:",
-        exceptionKey,
-        "→",
-        exceptions[exceptionKey]
-      );
+    } else {
 
+      easya =
+        dictionary[token] ?? original;
+    }
+
+    /*
+      Role detection
+    */
+
+    let role = "other";
+
+    if (subjectPronouns.has(token)) {
+
+      role = "subject";
+
+    } else if (
+      beVerbs.has(token) ||
+      (
+        tagged.some(t => t.role === "subject") &&
+        verbIdx === -1 &&
+        (
+          dictionary[token] !== undefined ||
+          exceptions[exceptionKey] !== undefined
+        )
+      )
+    ) {
+
+      role = "verb";
+    }
+
+    if (role === "verb" && verbIdx === -1) {
+
+      verbIdx = tagged.length;
+    }
+
+    tagged.push({ easya, punct, role });
+  }
+
+  /*
+    --- Pass 3: insert "non" before verb ---
+  */
+
+  if (hasNot && verbIdx !== -1) {
+
+    tagged.splice(
+      verbIdx,
+      0,
+      { easya: "non", punct: "", role: "other" }
+    );
+
+    verbIdx += 1;
+  }
+
+  /*
+    --- Pass 4: apply tense suffix ---
+  */
+
+  if (verbIdx !== -1) {
+
+    const v = tagged[verbIdx];
+
+    v.easya =
+      applyTenseEasya(v.easya, tense);
+  }
+
+  /*
+    --- Pass 5: reorder for question ---
+  */
+
+  const ordered =
+    isQuestion
+      ? reorderToVSO(tagged)
+      : tagged;
+
+  return ordered
+    .map(t => t.easya + t.punct)
+    .join(" ");
+}
+
+/*
+  ============================================================
+  Easya → EN
+
+  Steps:
+  1. Detect tense suffix on first verb (-ed past, -en future).
+  2. Detect "non" → negation, strip it.
+  3. Word-for-word translation (strip tense suffix for lookup).
+  4. If question (ends ?), reorder VSO → SVO.
+  5. Insert aux verb (was/will) before verb.
+  6. Insert "not" after verb.
+  ============================================================
+*/
+
+function translateEaToEn(sentence) {
+
+  const isQuestion =
+    /\?$/.test(sentence.trim());
+
+  const tokens =
+    tokenize(sentence);
+
+  const easyaSubjects =
+    new Set([
+      "mio","tosso","ilo","eto",
+      "mios","tossos","ilos","etos",
+    ]);
+
+  /*
+    Be-verb base forms (present)
+  */
+
+  const easyaBeVerbBases =
+    new Set(["este","iste"]);
+
+  let tense          = "present";
+  let hasNon         = false;
+  const skipIdx      = new Set();
+  const tenseTokens  = new Set();
+
+  /*
+    --- Pass 1: detect tense & negation ---
+  */
+
+  for (
+    let i = 0;
+    i < tokens.length;
+    i++
+  ) {
+
+    const w =
+      tokens[i].word.toLowerCase();
+
+    if (w === "non") {
+
+      hasNon = true;
+      skipIdx.add(i);
       continue;
     }
 
     /*
-      Standard dictionary
+      Check -ed suffix
     */
 
-    if (dictionary[token]) {
+    if (
+      tense === "present" &&
+      w.endsWith("ed")
+    ) {
 
-      translated.push(
-        dictionary[token] + punct
-      );
+      const base = w.slice(0, -1); // remove 'd'
 
-      console.log(
-        "Dictionary:",
-        token,
-        "→",
-        dictionary[token]
-      );
+      if (
+        reverseDictionary[base] ||
+        easyaBeVerbBases.has(base)
+      ) {
 
-    } else {
+        tense = "past";
+        tenseTokens.add(i);
+      }
+    }
 
-      /*
-        Keep unknown word
-      */
+    /*
+      Check -en suffix
+    */
 
-      translated.push(
-        original + punct
-      );
+    if (
+      tense === "present" &&
+      w.endsWith("en")
+    ) {
 
-      console.log(
-        "Unknown word:",
-        original
-      );
+      const base = w.slice(0, -1); // remove 'n'
+
+      if (
+        reverseDictionary[base] ||
+        easyaBeVerbBases.has(base)
+      ) {
+
+        tense = "future";
+        tenseTokens.add(i);
+      }
     }
   }
 
   /*
-    Display result
+    --- Pass 2: word-for-word translation ---
   */
 
-  result.innerText =
-    translated.join(" ");
+  let verbIdx = -1;
+
+  const tagged = [];
+
+  for (
+    let i = 0;
+    i < tokens.length;
+    i++
+  ) {
+
+    if (skipIdx.has(i)) continue;
+
+    const { word: original, punct } =
+      tokens[i];
+
+    let token =
+      original.toLowerCase();
+
+    /*
+      Strip tense suffix for lookup
+    */
+
+    if (tenseTokens.has(i)) {
+
+      if (tense === "past") {
+
+        token = token.slice(0, -1);
+
+      } else if (tense === "future") {
+
+        token = token.slice(0, -1);
+      }
+    }
+
+    const english =
+      reverseDictionary[token]
+      ?? original;
+
+    let role = "other";
+
+    if (easyaSubjects.has(token)) {
+
+      role = "subject";
+
+    } else if (
+      easyaBeVerbBases.has(token) ||
+      (
+        tagged.some(t => t.role === "subject") &&
+        verbIdx === -1 &&
+        reverseDictionary[token] !== undefined
+      )
+    ) {
+
+      role = "verb";
+    }
+
+    if (role === "verb" && verbIdx === -1) {
+
+      verbIdx = tagged.length;
+    }
+
+    tagged.push({ english, punct, role });
+  }
+
+  /*
+    --- Pass 3: reorder VSO → SVO ---
+  */
+
+  const ordered =
+    isQuestion
+      ? reorderToSVO(tagged)
+      : tagged;
+
+  /*
+    --- Pass 4: insert aux verb ---
+  */
+
+  const finalVerbIdx =
+    ordered.findIndex(
+      t => t.role === "verb"
+    );
+
+  if (tense === "past" && finalVerbIdx !== -1) {
+
+    ordered.splice(
+      finalVerbIdx,
+      0,
+      { english: "was", punct: "", role: "aux" }
+    );
+
+  } else if (
+    tense === "future" &&
+    finalVerbIdx !== -1
+  ) {
+
+    ordered.splice(
+      finalVerbIdx,
+      0,
+      { english: "will", punct: "", role: "aux" }
+    );
+  }
+
+  /*
+    --- Pass 5: insert "not" after verb ---
+  */
+
+  if (hasNon) {
+
+    const vIdx =
+      ordered.findIndex(
+        t => t.role === "verb"
+      );
+
+    if (vIdx !== -1) {
+
+      ordered.splice(
+        vIdx + 1,
+        0,
+        { english: "not", punct: "", role: "other" }
+      );
+    }
+  }
+
+  return ordered
+    .map(t => t.english + t.punct)
+    .join(" ");
 }
 
 /*
+  ============================================================
+  Reorder: SVO → VSO
+  Moves first verb token to front
+  ============================================================
+*/
+
+function reorderToVSO(tagged) {
+
+  const vIdx =
+    tagged.findIndex(
+      t => t.role === "verb"
+    );
+
+  if (vIdx <= 0) return tagged;
+
+  const result = [...tagged];
+
+  const [verb] =
+    result.splice(vIdx, 1);
+
+  result.unshift(verb);
+
+  return result;
+}
+
+/*
+  ============================================================
+  Reorder: VSO → SVO
+  If verb comes before subject, move subject to front
+  ============================================================
+*/
+
+function reorderToSVO(tagged) {
+
+  const vIdx =
+    tagged.findIndex(
+      t => t.role === "verb"
+    );
+
+  const sIdx =
+    tagged.findIndex(
+      t => t.role === "subject"
+    );
+
+  if (vIdx === -1 || sIdx === -1) {
+    return tagged;
+  }
+
+  if (vIdx < sIdx) {
+
+    const result = [...tagged];
+
+    const [subject] =
+      result.splice(sIdx, 1);
+
+    result.unshift(subject);
+
+    return result;
+  }
+
+  return tagged;
+}
+
+/*
+  ============================================================
+  Apply Easya tense suffix
+  Verb ends in -e → -ed (past) or -en (future)
+  ============================================================
+*/
+
+function applyTenseEasya(verb, tense) {
+
+  if (!verb) return verb;
+
+  if (verb.endsWith("e")) {
+
+    if (tense === "past")   return verb + "d";
+    if (tense === "future") return verb + "n";
+  }
+
+  return verb;
+}
+
+/*
+  ============================================================
   Tokenize
   Returns: Array of { word: string, punct: string }
-  Punctuation attached to a word is preserved
-  and re-attached after translation.
+  ============================================================
 */
 
 function tokenize(text) {
-
-  /*
-    Match a word (letters/numbers/apostrophe)
-    optionally followed by punctuation
-  */
 
   const pattern =
     /([\p{L}\p{N}']+)([^\p{L}\p{N}'\s]*)/gu;
