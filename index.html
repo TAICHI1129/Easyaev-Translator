@@ -561,16 +561,31 @@ function translate() {
     );
 
   /*
-    Original tokens
+    Tokenize with punctuation info
+    e.g. "Hello, world!" →
+    [
+      { word: "Hello", punct: "," },
+      { word: "world", punct: "!" }
+    ]
   */
 
-  const originalTokens =
+  const tokens =
     tokenize(input);
 
   console.log(
     "tokens:",
-    originalTokens
+    tokens
   );
+
+  /*
+    Subject pronouns used for
+    Exception lookup (動詞|主語)
+  */
+
+  const subjectPronouns = new Set([
+    "i", "you", "he", "she",
+    "it", "we", "they", "you guys",
+  ]);
 
   /*
     Output
@@ -578,18 +593,21 @@ function translate() {
 
   const translated = [];
 
+  /*
+    Track the last subject pronoun
+    seen so far in the sentence
+  */
+
+  let lastSubject = undefined;
+
   for (
     let i = 0;
-    i < originalTokens.length;
+    i < tokens.length;
     i++
   ) {
 
-    /*
-      Original word
-    */
-
-    const original =
-      originalTokens[i];
+    const { word: original, punct } =
+      tokens[i];
 
     /*
       Convert to lowercase
@@ -599,46 +617,41 @@ function translate() {
       original.toLowerCase();
 
     /*
-      Previous word
+      Update last subject
+      when we see a subject pronoun
     */
 
-    const previous =
-      originalTokens[
-        i - 1
-      ]?.toLowerCase();
+    if (subjectPronouns.has(token)) {
+      lastSubject = token;
+    }
 
     /*
-      Exception key
+      Exception key: 動詞|主語
+      e.g. "am|i", "is|he"
     */
 
     const exceptionKey =
       token +
       "|" +
-      previous;
+      lastSubject;
 
     /*
       Exception priority
     */
 
     if (
-      exceptions[
-        exceptionKey
-      ]
+      exceptions[exceptionKey]
     ) {
 
       translated.push(
-        exceptions[
-          exceptionKey
-        ]
+        exceptions[exceptionKey] + punct
       );
 
       console.log(
         "Exception:",
         exceptionKey,
         "→",
-        exceptions[
-          exceptionKey
-        ]
+        exceptions[exceptionKey]
       );
 
       continue;
@@ -648,12 +661,10 @@ function translate() {
       Standard dictionary
     */
 
-    if (
-      dictionary[token]
-    ) {
+    if (dictionary[token]) {
 
       translated.push(
-        dictionary[token]
+        dictionary[token] + punct
       );
 
       console.log(
@@ -670,7 +681,7 @@ function translate() {
       */
 
       translated.push(
-        original
+        original + punct
       );
 
       console.log(
@@ -690,20 +701,36 @@ function translate() {
 
 /*
   Tokenize
+  Returns: Array of { word: string, punct: string }
+  Punctuation attached to a word is preserved
+  and re-attached after translation.
 */
 
 function tokenize(text) {
 
-  return text
+  /*
+    Match a word (letters/numbers/apostrophe)
+    optionally followed by punctuation
+  */
 
-    .replace(
-      /[^\p{L}\p{N}\s']/gu,
-      ""
-    )
+  const pattern =
+    /([\p{L}\p{N}']+)([^\p{L}\p{N}'\s]*)/gu;
 
-    .split(/\s+/)
+  const tokens = [];
 
-    .filter(Boolean);
+  let match;
+
+  while (
+    (match = pattern.exec(text)) !== null
+  ) {
+
+    tokens.push({
+      word:  match[1],
+      punct: match[2],
+    });
+  }
+
+  return tokens;
 }
 
 </script>
