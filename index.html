@@ -324,7 +324,107 @@ function buildDictionary(data) {
         easya
       );
     }
+
+    /*
+      Variations (e.g. Possessive Adjective)
+    */
+
+    const variations =
+      word.sections?.[0]
+      ?.variations;
+
+    if (
+      variations &&
+      variations.length > 0
+    ) {
+
+      const equivalents =
+        word.sections?.[0]
+        ?.equivalents ?? [];
+
+      for (
+        const variation
+        of variations
+      ) {
+
+        const variationSpelling =
+          variation.spelling;
+
+        const varTitle =
+          variation.title
+          ?.toLowerCase() ?? "";
+
+        for (
+          const equivalent
+          of equivalents
+        ) {
+
+          for (
+            const term
+            of (equivalent.terms ?? [])
+          ) {
+
+            const englishVariant =
+              toEnglishVariation(
+                term,
+                varTitle
+              );
+
+            if (
+              englishVariant &&
+              variationSpelling
+            ) {
+
+              dictionary[
+                englishVariant.toLowerCase()
+              ] = variationSpelling;
+
+              console.log(
+                englishVariant,
+                "→",
+                variationSpelling
+              );
+            }
+          }
+        }
+      }
+    }
   }
+}
+
+/*
+  Convert base pronoun + variation title
+  to the corresponding English form
+*/
+
+function toEnglishVariation(
+  baseTerm,
+  variationTitle
+) {
+
+  if (
+    variationTitle.includes(
+      "possessive"
+    )
+  ) {
+
+    const map = {
+      "i":        "my",
+      "you":      "your",
+      "he":       "his",
+      "she":      "her",
+      "it":       "its",
+      "we":       "our",
+      "they":     "their",
+      "you guys": "your",
+    };
+
+    return map[
+      baseTerm.toLowerCase()
+    ] ?? null;
+  }
+
+  return null;
 }
 
 /*
