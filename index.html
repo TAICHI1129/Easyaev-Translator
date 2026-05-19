@@ -741,6 +741,14 @@ function translateEnToEa(sentence) {
   const ENAuxFuture =
     new Set(["will","shall"]);
 
+  /*
+    do/does are question-forming aux verbs
+    with no semantic content → always skip
+  */
+
+  const ENAuxDo =
+    new Set(["do","does"]);
+
   const beVerbs =
     new Set(["am","is","are","was","were"]);
 
@@ -775,6 +783,10 @@ function translateEnToEa(sentence) {
     } else if (ENAuxFuture.has(w)) {
 
       tense = "future";
+      skipIdx.add(i);
+
+    } else if (ENAuxDo.has(w)) {
+
       skipIdx.add(i);
     }
 
@@ -1049,9 +1061,62 @@ function translateEaToEn(sentence) {
       }
     }
 
-    const english =
-      reverseDictionary[token]
-      ?? original;
+    /*
+      Reverse-lookup for este / iste
+      based on the last subject seen.
+      este: am (I) / are (you/we/they) / is (fallback)
+      iste: is / are (they)
+    */
+
+    let english;
+
+    if (easyaSubjects.has(token)) {
+
+      /*
+        Resolve subject pronoun first,
+        so be-verb lookup below can use it
+      */
+
+      english =
+        reverseDictionary[token]
+        ?? original;
+
+    } else if (easyaBeVerbBases.has(token)) {
+
+      const lastEasyaSubject =
+        tagged
+          .filter(t => t.role === "subject")
+          .at(-1)
+          ?.english
+          ?.toLowerCase();
+
+      if (token === "este") {
+
+        const esteMap = {
+          "i":        "am",
+          "you":      "are",
+          "we":       "are",
+          "you guys": "are",
+        };
+
+        english =
+          esteMap[lastEasyaSubject] ?? "is";
+
+      } else {
+
+        // iste
+        english =
+          lastEasyaSubject === "they"
+            ? "are"
+            : "is";
+      }
+
+    } else {
+
+      english =
+        reverseDictionary[token]
+        ?? original;
+    }
 
     let role = "other";
 
@@ -1231,32 +1296,4 @@ function applyTenseEasya(verb, tense) {
   ============================================================
   Tokenize
   Returns: Array of { word: string, punct: string }
-  ============================================================
-*/
-
-function tokenize(text) {
-
-  const pattern =
-    /([\p{L}\p{N}']+)([^\p{L}\p{N}'\s]*)/gu;
-
-  const tokens = [];
-
-  let match;
-
-  while (
-    (match = pattern.exec(text)) !== null
-  ) {
-
-    tokens.push({
-      word:  match[1],
-      punct: match[2],
-    });
-  }
-
-  return tokens;
-}
-
-</script>
-
-</body>
-</html>
+  ======================
