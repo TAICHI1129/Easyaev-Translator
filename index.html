@@ -1292,8 +1292,31 @@ function applyTenseEasya(verb, tense) {
   return verb;
 }
 
-/*
-  ============================================================
-  Tokenize
-  Returns: Array of { word: string, punct: string }
-  ======================
+
+
+function tokenize(text) {
+
+  const pattern =
+    /([\p{L}\p{N}']+)([^\p{L}\p{N}'\s]*)/gu;
+
+  const tokens = [];
+
+  let match;
+
+  while (
+    (match = pattern.exec(text)) !== null
+  ) {
+
+    tokens.push({
+      word:  match[1],
+      punct: match[2],
+    });
+  }
+
+  return tokens;
+}
+
+</script>
+
+</body>
+</html>
